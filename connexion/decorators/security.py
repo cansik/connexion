@@ -13,9 +13,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 # Authentication and authorization related decorators
 
+from typing import Callable
 import logging
 import functools
-import types
 
 from flask import abort, request
 import requests
@@ -24,7 +24,7 @@ import requests
 logger = logging.getLogger('connexion.api.security')
 
 
-def verify_oauth(token_info_url: str, allowed_scopes: set, function: types.FunctionType) -> types.FunctionType:
+def verify_oauth(token_info_url: str, allowed_scopes: set, function: Callable) -> Callable:
     """
     Decorator to verify oauth
     """

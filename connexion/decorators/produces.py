@@ -12,12 +12,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 # Decorators to change the return type of endpoints
+
+from typing import Callable, Mapping
 import functools
-import types
 import flask
 
 
-def jsonify(function: types.FunctionType) -> types.FunctionType:
+def jsonify(function: Callable[..., Mapping]) -> Callable[..., flask.Response]:
     """
     Decorator to jsonify the return value of the wrapped function
     """
