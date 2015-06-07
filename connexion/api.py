@@ -11,10 +11,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
+from typing import Any, Callable, List, Mapping, Optional, Union
+
 import functools
 import logging
 import pathlib
-import types
 
 import flask
 import jinja2
@@ -31,25 +32,30 @@ SWAGGER_UI_PATH = MODULE_PATH / 'swagger-ui'
 logger = logging.getLogger('connexion.api')
 
 
+
+# types
+TemplateArgs = Optional[Mapping[str, Any]]
+Path = Union[str, pathlib.Path]
+
 class Api:
     """
     Single API that corresponds to a flask blueprint
     """
 
-    def __init__(self, swagger_yaml_path: pathlib.Path, base_url: str=None, arguments: dict=None):
+    def __init__(self, swagger_yaml_path: Path, base_url: Optional[str]=None, arguments: TemplateArgs=None):
         self.swagger_yaml_path = pathlib.Path(swagger_yaml_path)
         logger.debug('Loading specification: %s', swagger_yaml_path)
-        arguments = arguments or {}
+        arguments = arguments or {}  # type: Mapping[str, Any]
         with swagger_yaml_path.open() as swagger_yaml:
-            swagger_template = swagger_yaml.read()
-            swagger_string = jinja2.Template(swagger_template).render(**arguments)
-            self.specification = yaml.load(swagger_string)  # type: dict
+            swagger_template = swagger_yaml.read()  # type: str
+            swagger_string = jinja2.Template(swagger_template).render(**arguments)  # type: str
+            self.specification = yaml.load(swagger_string)  # type: Mapping[str, Any]
 
         # https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md#fixed-fields
         # TODO Validate yaml
         # If base_url is not on provided then we try to read it from the swagger.yaml or use / by default
         if base_url is None:
-            self.base_url = self.specification.get('basePath', '')  # type: dict
+            self.base_url = self.specification.get('basePath', '')  # type: str
         else:
             self.base_url = base_url
             self.specification['basePath'] = base_url
@@ -59,7 +65,7 @@ class Api:
         self.produces = self.specification.get('produces', list())  # type: List[str]
 
         self.security = self.specification.get('security', [None]).pop()
-        self.security_definitions = self.specification.get('securityDefinitions', dict())
+        self.security_definitions = self.specification.get('securityDefinitions', dict())  # type: Mapping
         logger.debug('Security Definitions: %s', self.security_definitions)
 
         # Create blueprint and enpoints
@@ -69,7 +75,7 @@ class Api:
         self.add_swagger_ui()
         self.add_paths()
 
-    def _get_produces_decorator(self, operation: dict) -> types.FunctionType:
+    def _get_produces_decorator(self, operation: Mapping[str, Any]) -> Optional[Callable]:
         """
         Get produces decorator.
 
@@ -83,7 +89,7 @@ class Api:
         An empty value MAY be used to clear the global definition.
         """
 
-        produces = operation['produces'] if 'produces' in operation else self.produces
+        produces = operation['produces'] if 'produces' in operation else self.produces  # type: List[str]
         logger.debug('... Produces: %s', produces)
 
         if produces == ['application/json']:  # endpoint will return json
@@ -93,7 +99,7 @@ class Api:
         # If we don't know how to handle the `produces` type then we will not decorate the function
         return None
 
-    def _get_security_decorator(self, operation: dict) -> types.FunctionType:
+    def _get_security_decorator(self, operation: Mapping[str, Any]) -> Optional[Callable]:
         """
         Gets the security decorator for operation
 
@@ -136,7 +142,7 @@ class Api:
         # if we don't know how to handle the security or it's not defined we will not decorate the function
         return None
 
-    def add_operation(self, method: str, path: str, operation: dict):
+    def add_operation(self, method: str, path: str, operation: Mapping[str, Any]):
         """
         Adds one operation to the api.
 
@@ -167,11 +173,11 @@ class Api:
 
         self.blueprint.add_url_rule(path, endpoint_name, function, methods=[method])
 
-    def add_paths(self, paths: list=None):
+    def add_paths(self, paths: Optional[Mapping[str, Mapping]]=None):
         """
         Adds the paths defined in the specification as endpoints
         """
-        paths = paths or self.specification.get('paths', dict())
+        paths = paths or self.specification.get('paths', dict())  # type: Mapping[str, Mapping]
         for path, methods in paths.items():
             logger.debug('Adding %s%s...', self.base_url, path)
             path = utils.flaskify_path(path)
@@ -197,7 +203,7 @@ class Api:
         index_endpoint_name = "{name}_swagger_ui_index".format(name=self.blueprint.name)
         self.blueprint.add_url_rule('/ui/', index_endpoint_name, self.swagger_ui_index)
 
-    def create_blueprint(self, base_url: str=None) -> flask.Blueprint:
+    def create_blueprint(self, base_url: Optional[str]=None) -> flask.Blueprint:
         base_url = base_url or self.base_url
         logger.debug('Creating API blueprint: %s', base_url)
         endpoint = utils.flaskify_endpoint(base_url)
