@@ -11,10 +11,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
+from typing import Any, Callable, Mapping, Optional, Union
 
 import logging
 import pathlib
-import types
 
 import flask
 import tornado.wsgi
@@ -26,11 +26,14 @@ import connexion.api
 
 logger = logging.getLogger('api')
 
+# types
+TemplateArgs = Optional[Mapping[str, Any]]
+Path = Union[str, pathlib.Path]
 
 class App:
 
-    def __init__(self, import_name: str, port: int=5000, specification_dir: pathlib.Path='', server: str=None,
-                 arguments: dict=None, debug: bool=False):
+    def __init__(self, import_name: str, port: int=5000, specification_dir: pathlib.Path='',
+                 server: Optional[str]=None, arguments: dict=None, debug: bool=False):
         """
         :param import_name: the name of the application package
         :param port: port to listen to
@@ -44,9 +47,8 @@ class App:
         self.root_path = pathlib.Path(self.app.root_path)
         logger.debug('Root Path: %s', self.root_path)
 
-        specification_dir = pathlib.Path(specification_dir)  # Ensure specification dir is a Path
         if specification_dir.is_absolute():
-            self.specification_dir = specification_dir
+            self.specification_dir = pathlib.Path(specification_dir)  # Ensure specification dir is a Path
         else:
             self.specification_dir = self.root_path / specification_dir
 
@@ -59,9 +61,9 @@ class App:
         self.port = port
         self.server = server
         self.debug = debug
-        self.arguments = arguments or {}
+        self.arguments = arguments or {}  # type: Mapping[str, Any]
 
-    def add_api(self, swagger_file: pathlib.Path, base_path: str=None, arguments: dict=None):
+    def add_api(self, swagger_file: Path, base_path: Optional[str], arguments: TemplateArgs=None):
         """
         :param swagger_file: swagger file with the specification
         :param base_path: base path where to add this api
@@ -69,13 +71,13 @@ class App:
         """
         logger.debug('Adding API: %s', swagger_file)
         # TODO test if base_url starts with an / (if not none)
-        arguments = arguments or dict()
+        arguments = arguments or dict() # type: Mapping[str, Any]
         arguments = dict(self.arguments, **arguments)  # copy global arguments and update with api specfic
         yaml_path = self.specification_dir / swagger_file
         api = connexion.api.Api(yaml_path, base_path, arguments)
         self.app.register_blueprint(api.blueprint)
 
-    def add_error_handler(self, error_code: int, function: types.FunctionType):
+    def add_error_handler(self, error_code: int, function: Callable):
         self.app.error_handler_spec[None][error_code] = function
 
     @staticmethod
