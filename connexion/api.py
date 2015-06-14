@@ -11,7 +11,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-from typing import Any, Callable, List, Mapping, Optional, Union
+from typing import Any, Callable, List, Mapping, Optional, Union  # noqa
 
 import functools
 import logging
@@ -31,11 +31,10 @@ SWAGGER_UI_PATH = MODULE_PATH / 'swagger-ui'
 
 logger = logging.getLogger('connexion.api')
 
-
-
 # types
 TemplateArgs = Optional[Mapping[str, Any]]
 Path = Union[str, pathlib.Path]
+
 
 class Api:
     """
