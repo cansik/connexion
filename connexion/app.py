@@ -30,6 +30,7 @@ logger = logging.getLogger('api')
 TemplateArgs = Optional[Mapping[str, Any]]
 Path = Union[str, pathlib.Path]
 
+
 class App:
 
     def __init__(self, import_name: str, port: int=5000, specification_dir: pathlib.Path='',
@@ -63,7 +64,7 @@ class App:
         self.debug = debug
         self.arguments = arguments or {}  # type: Mapping[str, Any]
 
-    def add_api(self, swagger_file: Path, base_path: Optional[str], arguments: TemplateArgs=None):
+    def add_api(self, swagger_file: Path, base_path: Optional[str]=None, arguments: TemplateArgs=None):
         """
         :param swagger_file: swagger file with the specification
         :param base_path: base path where to add this api
@@ -71,7 +72,7 @@ class App:
         """
         logger.debug('Adding API: %s', swagger_file)
         # TODO test if base_url starts with an / (if not none)
-        arguments = arguments or dict() # type: Mapping[str, Any]
+        arguments = arguments or dict()  # type: Mapping[str, Any]
         arguments = dict(self.arguments, **arguments)  # copy global arguments and update with api specfic
         yaml_path = self.specification_dir / swagger_file
         api = connexion.api.Api(yaml_path, base_path, arguments)
